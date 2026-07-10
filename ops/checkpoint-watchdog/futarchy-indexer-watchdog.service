@@ -1,0 +1,24 @@
+[Unit]
+Description=Restart Checkpoint indexers after sustained progress staleness
+After=docker.service
+Requisite=docker.service
+ConditionPathExists=/var/run/docker.sock
+
+[Service]
+Type=oneshot
+User=azsantos_k_gmail_com
+SupplementaryGroups=docker
+StateDirectory=futarchy-indexer-watchdog
+Environment=WATCHDOG_STATE_PATH=/var/lib/futarchy-indexer-watchdog/state.json
+Environment=WATCHDOG_STALE_SECONDS=600
+Environment=WATCHDOG_MIN_LAG_BLOCKS=100
+Environment=WATCHDOG_RESTART_COOLDOWN_SECONDS=3600
+Environment=WATCHDOG_DEEP_REWIND_BLOCKS=100
+ExecStart=/usr/bin/python3 /opt/futarchy-indexer-watchdog/checkpoint_watchdog.py
+TimeoutStartSec=4min
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/futarchy-indexer-watchdog

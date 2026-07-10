@@ -1,0 +1,11 @@
+[Unit]
+Description=Check Futarchy indexer progress every five minutes
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=2min
+RandomizedDelaySec=30s
+Unit=futarchy-indexer-watchdog.service
+
+[Install]
+WantedBy=timers.target
