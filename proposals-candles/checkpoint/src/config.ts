@@ -123,6 +123,23 @@ export const mainnetConfig: CheckpointConfig = {
 };
 
 // ============================================================================
+// Indexer selection
+// ============================================================================
+// DISABLE_GNOSIS=true / DISABLE_MAINNET=true drop the corresponding indexer.
+// This allows a second, isolated deployment to run mainnet-only against its
+// own fresh postgres (see docker-compose.mainnet.yml): checkpoint's
+// per-indexer schema_version guard rejects a NEW indexer name on an
+// already-initialized database ("schema changed — schema version changed from
+// null to 1"), so mainnet cannot simply be flipped on against the Gnosis prod
+// database without a reset.
+export function enabledIndexers(env: NodeJS.ProcessEnv = process.env): Record<string, CheckpointConfig> {
+    const indexers: Record<string, CheckpointConfig> = {};
+    if (env.DISABLE_GNOSIS !== 'true') indexers.gnosis = gnosisConfig;
+    if (env.DISABLE_MAINNET !== 'true') indexers.mainnet = mainnetConfig;
+    return indexers;
+}
+
+// ============================================================================
 // Future Chain Configs (Template)
 // ============================================================================
 // export const arbitrumConfig: CheckpointConfig = {

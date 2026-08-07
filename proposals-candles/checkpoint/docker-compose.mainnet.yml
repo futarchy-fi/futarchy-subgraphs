@@ -1,0 +1,68 @@
+# Isolated MAINNET-ONLY candles indexer.
+#
+# Why a separate stack: @snapshot-labs/checkpoint keeps a per-indexer
+# schema_version row in _metadatas that is only written by reset(). A NEW
+# indexer name ("mainnet") started against the already-initialized Gnosis
+# database has no such row, so validateStore() fails with
+# "schema changed — schema version changed from null to 1" (and fixing that
+# in-place would require resetting, which drops the shared entity tables and
+# the Gnosis sync). So mainnet runs against its OWN fresh postgres.
+#
+# Usage (leaves the default docker-compose.yml Gnosis deployment untouched):
+#   docker compose -f docker-compose.mainnet.yml up -d --build
+#
+# The `name:` below sets the compose project name so containers, network and
+# volume never collide with the default stack (equivalent to -p candles-mainnet).
+name: candles-mainnet
+
+services:
+  checkpoint:
+    build: .
+    ports:
+      - "${MAINNET_HTTP_PORT:-3002}:3000"
+    environment:
+      DATABASE_URL: postgres://checkpoint:checkpoint123@postgres:5432/checkpoint_candles
+      # Gnosis is indexed by the default stack; this instance is mainnet-only.
+      DISABLE_GNOSIS: "true"
+      # For production, set a paid RPC endpoint via env var:
+      #   MAINNET_RPC_URL=https://mainnet.infura.io/v3/YOUR_API_KEY
+      MAINNET_RPC_URL: ${MAINNET_RPC_URL:-https://eth.llamarpc.com}
+      RESET: ${RESET:-false}
+      CHECKPOINT_BATCH_SIZE: ${CHECKPOINT_BATCH_SIZE:-200}
+      CANDLE_PERIODS: ${CANDLE_PERIODS:-3600}
+      MAINNET_BLOCK_RANGE: ${MAINNET_BLOCK_RANGE:-50000}
+      SKIP_SWAP_STORAGE: ${SKIP_SWAP_STORAGE:-false}
+      CANDLE_FLUSH_INTERVAL: ${CANDLE_FLUSH_INTERVAL:-50}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - checkpoint-net
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: checkpoint
+      POSTGRES_PASSWORD: checkpoint123
+      POSTGRES_DB: checkpoint_candles
+    # NOTE: the registry stack (futarchy-complete/checkpoint) already publishes
+    # host port 5435 for its postgres. If both run on the same host, override:
+    #   MAINNET_PG_PORT=5436 docker compose -f docker-compose.mainnet.yml up -d
+    ports:
+      - "${MAINNET_PG_PORT:-5435}:5432"
+    volumes:
+      - mainnet-candles-postgres-data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U checkpoint -d checkpoint_candles"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - checkpoint-net
+
+volumes:
+  mainnet-candles-postgres-data:
+
+networks:
+  checkpoint-net:

@@ -7,7 +7,7 @@ export const ProposalMetadataAbi = [
             { indexed: false, internalType: 'string', name: 'displayNameEvent', type: 'string' },
             { indexed: false, internalType: 'string', name: 'description', type: 'string' }
         ],
-        name: 'ProposalInfoUpdated',
+        name: 'MetadataUpdated',
         type: 'event'
     },
     {
