@@ -268,8 +268,8 @@ export const handleNewProposal: evm.Writer = async ({ event, blockNumber, source
     try {
         // Get collateral tokens from proposal contract
         const [collateral1, collateral2] = await Promise.all([
-            client.readContract({ address: proposalAddr as `0x${string}`, abi: FutarchyProposalAbi, functionName: 'collateralToken1' }).catch(() => null),
-            client.readContract({ address: proposalAddr as `0x${string}`, abi: FutarchyProposalAbi, functionName: 'collateralToken2' }).catch(() => null)
+            client.readContract({ address: proposalAddr as `0x${string}`, abi: FutarchyProposalAbi, functionName: 'collateralToken1' } as any).catch(() => null),
+            client.readContract({ address: proposalAddr as `0x${string}`, abi: FutarchyProposalAbi, functionName: 'collateralToken2' } as any).catch(() => null)
         ]);
 
         // Whitelist collateral tokens
@@ -291,7 +291,7 @@ export const handleNewProposal: evm.Writer = async ({ event, blockNumber, source
                     abi: FutarchyProposalAbi,
                     functionName: 'wrappedOutcome',
                     args: [BigInt(i)]
-                }) as any;
+                } as any) as any;
 
                 // New ABI returns (address wrapped1155, bytes data)
                 // outcome is an array: [wrapped1155Address, dataBytes]
