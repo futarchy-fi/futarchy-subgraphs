@@ -1,6 +1,7 @@
 services:
   registry-checkpoint:
     container_name: futarchy-registry-checkpoint
+    restart: unless-stopped
     build: .
     ports:
       - "3003:3000"
