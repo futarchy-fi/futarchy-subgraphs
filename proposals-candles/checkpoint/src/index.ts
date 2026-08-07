@@ -4,7 +4,7 @@
 import Checkpoint, { evm, LogLevel } from '@snapshot-labs/checkpoint';
 import express, { Request, Response } from 'express';
 import * as writers from './writers';
-import { gnosisConfig, mainnetConfig } from './config';
+import { enabledIndexers } from './config';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -42,13 +42,13 @@ const checkpoint = new Checkpoint(schema, {
 // Register Multi-Chain Indexers
 // ============================================================================
 
-// Gnosis Chain (Algebra DEX)
-console.log('Registering Gnosis indexer (Algebra DEX)...');
-checkpoint.addIndexer('gnosis', gnosisConfig, new evm.EvmIndexer(writers));
-
-// Ethereum Mainnet (Uniswap V3 DEX)
-console.log('Registering Mainnet indexer (Uniswap V3 DEX)...');
-checkpoint.addIndexer('mainnet', mainnetConfig, new evm.EvmIndexer(writers));
+// Gnosis Chain (Algebra DEX) / Ethereum Mainnet (Uniswap V3 DEX).
+// DISABLE_GNOSIS=true / DISABLE_MAINNET=true skip registration (see config.ts).
+const indexers = enabledIndexers();
+for (const [name, config] of Object.entries(indexers)) {
+    console.log(`Registering ${name} indexer...`);
+    checkpoint.addIndexer(name, config, new evm.EvmIndexer(writers));
+}
 
 // Future chains can be added here:
 // checkpoint.addIndexer('arbitrum', arbitrumConfig, new evm.EvmIndexer(writers));
@@ -77,7 +77,7 @@ app.use('/graphql', checkpoint.graphql);
 app.get('/health', (_req: Request, res: Response) => {
     res.json({
         status: 'ok',
-        chains: ['gnosis', 'mainnet'],
+        chains: Object.keys(indexers),
         timestamp: new Date().toISOString()
     });
 });

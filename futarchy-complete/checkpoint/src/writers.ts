@@ -448,6 +448,12 @@ export const handleProposalCreated: evm.Writer = async ({ event, blockNumber, so
 export const handleProposalRemoved: evm.Writer = async ({ event }) => {
     if (!event) return;
     const proposalAddress = ((event as any).args?.proposalMetadata as string)?.toLowerCase();
+    if (!proposalAddress) return;
+
+    const proposal = await ProposalEntity.loadEntity(proposalAddress, INDEXER_NAME);
+    if (proposal) {
+        await proposal.delete();
+    }
     console.log(`🗑️ Proposal removed: ${proposalAddress}`);
 };
 

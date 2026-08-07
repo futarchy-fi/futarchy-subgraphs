@@ -68,7 +68,9 @@ export const config: CheckpointConfig = {
         ProposalMetadata: {
             abi: 'ProposalMetadata',
             events: [
-                { name: 'ProposalInfoUpdated(string,string,string)', fn: 'handleProposalInfoUpdated' },
+                // On-chain event is MetadataUpdated (emitted by updateMetadata()),
+                // see abis/Proposal.json — there is no ProposalInfoUpdated event.
+                { name: 'MetadataUpdated(string,string,string)', fn: 'handleProposalInfoUpdated' },
                 { name: 'ExtendedMetadataUpdated(string,string)', fn: 'handleProposalMetadataUpdated' },
                 { name: 'EditorSet(address)', fn: 'handleProposalEditorSet' },
                 { name: 'OwnershipTransferred(address,address)', fn: 'handleProposalOwnershipTransferred' }
