@@ -199,6 +199,10 @@ async function main() {
         if (process.env.RESET === 'true') {
             console.log('🔄 Resetting database...');
             await checkpoint.reset();
+            // reset() wipes entity stores but not per-indexer metadata
+            // (config checksum / schema version) — without this the next
+            // boot throws "Error: config changed".
+            await checkpoint.resetMetadata();
         }
 
         await rehydrateTemplateSources();
