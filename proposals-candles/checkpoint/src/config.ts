@@ -12,21 +12,24 @@ import {
     ERC20Abi
 } from './abis';
 
+const GNOSIS_START_BLOCK = parseInt(process.env.GNOSIS_START_BLOCK || '40620030', 10);
+const MAINNET_START_BLOCK = parseInt(process.env.MAINNET_START_BLOCK || '23419000', 10);
+
 // ============================================================================
 // Gnosis Chain Configuration (Algebra DEX)
 // ============================================================================
 export const gnosisConfig: CheckpointConfig = {
-    // Free RPCs (rpc.gnosischain.com) have low block range limits (~500).
-    // For production, use a paid RPC like QuickNode (supports 10k range).
+    // Free RPCs (rpc.gnosischain.com) have low block range limits.
+    // The actual eth_getLogs split size is controlled by the Checkpoint
+    // provider patch via CHECKPOINT_MAX_BLOCKS_PER_REQUEST.
     network_node_url: process.env.GNOSIS_RPC_URL || 'https://rpc.gnosischain.com',
-    chunk_size: 10000, // Max eth_getLogs block range per request (QuickNode paid = 10k)
 
     sources: [
         // Futarchy Factory - emits NewProposal when proposals created
         {
             contract: '0xa6cB18FCDC17a2B44E5cAd2d80a6D5942d30a345',
             abi: 'FutarchyFactory',
-            start: 40620030,
+            start: GNOSIS_START_BLOCK,
             events: [
                 { name: 'NewProposal(address,string,bytes32,bytes32)', fn: 'handleNewProposal' }
             ]
@@ -35,7 +38,7 @@ export const gnosisConfig: CheckpointConfig = {
         {
             contract: '0xa0864cca6e114013ab0e27cbd5b6f4c8947da766',
             abi: 'AlgebraFactory',
-            start: 40620030,
+            start: GNOSIS_START_BLOCK,
             events: [
                 { name: 'Pool(address,address,address)', fn: 'handleAlgebraPoolCreated' }
             ]
@@ -73,17 +76,17 @@ export const gnosisConfig: CheckpointConfig = {
 // Ethereum Mainnet Configuration (Uniswap V3 DEX)
 // ============================================================================
 export const mainnetConfig: CheckpointConfig = {
-    // Free RPCs (eth.llamarpc.com) have ~1k block range limits.
-    // For production, use Infura/Alchemy (supports 50k+ range).
+    // Free RPCs (eth.llamarpc.com) have low block range limits.
+    // The actual eth_getLogs split size is controlled by the Checkpoint
+    // provider patch via CHECKPOINT_MAX_BLOCKS_PER_REQUEST.
     network_node_url: process.env.MAINNET_RPC_URL || 'https://eth.llamarpc.com',
-    chunk_size: 50000, // Max eth_getLogs block range per request (Infura paid = 50k+)
 
     sources: [
         // Futarchy Factory
         {
             contract: '0xf9369c0F7a84CAC3b7Ef78c837cF7313309D3678',
             abi: 'FutarchyFactory',
-            start: 23419000,  // Just before first proposal at 23419797
+            start: MAINNET_START_BLOCK,  // Default is just before first proposal at 23419797
             events: [
                 { name: 'NewProposal(address,string,bytes32,bytes32)', fn: 'handleNewProposal' }
             ]
@@ -92,7 +95,7 @@ export const mainnetConfig: CheckpointConfig = {
         {
             contract: '0x1F98431c8aD98523631AE4a59f267346ea31F984',
             abi: 'UniswapV3Factory',
-            start: 23419000,  // Match Futarchy factory start
+            start: MAINNET_START_BLOCK,  // Match Futarchy factory start
             events: [
                 { name: 'PoolCreated(address,address,uint24,int24,address)', fn: 'handleUniswapPoolCreated' }
             ]
