@@ -73,7 +73,12 @@ interface CandleState {
 }
 const candleCache = new Map<string, CandleState>();
 const SKIP_SWAP_STORAGE = process.env.SKIP_SWAP_STORAGE === 'true';
-const CANDLE_FLUSH_INTERVAL = parseInt(process.env.CANDLE_FLUSH_INTERVAL || '50'); // flush every N swaps
+const CANDLE_FLUSH_INTERVAL = parseInt(process.env.CANDLE_FLUSH_INTERVAL || '50'); // flush every N swaps (backfill batching)
+// Blocks younger than this are "at head": flush candles on every swap so the
+// API never serves stale closes. Batching only pays off during backfill —
+// sparse futarchy pools (~2 swaps/day) otherwise leave dirty candles in
+// memory for days (observed live: NO-pool candle missing hours after its swap).
+const CANDLE_FLUSH_HEAD_SECONDS = parseInt(process.env.CANDLE_FLUSH_HEAD_SECONDS || '300');
 let swapsSinceFlush = 0;
 
 // Pool state cache: poolId → pool fields (avoids pool.save on every swap)
@@ -649,7 +654,8 @@ export const handleSwap: evm.Writer = async ({ event, source, block }) => {
 
     // ===== Periodic flush: write dirty candles + pools to DB =====
     swapsSinceFlush++;
-    if (swapsSinceFlush >= CANDLE_FLUSH_INTERVAL) {
+    const atHead = Math.floor(Date.now() / 1000) - timestamp <= CANDLE_FLUSH_HEAD_SECONDS;
+    if (atHead || swapsSinceFlush >= CANDLE_FLUSH_INTERVAL) {
         await flushCandles();
         await flushPoolStates();
         swapsSinceFlush = 0;
