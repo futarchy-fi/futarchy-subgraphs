@@ -532,3 +532,22 @@ patchFile('stores/checkpoints.js', [
 ]);
 
 console.log('=== All patches applied successfully ===\n');
+
+// ---------------------------------------------------------------------------
+// Make the provider's getLogs chunk size runtime-configurable. The lib
+// hardcodes 10000, and some RPCs (quiknode) cap INCLUSIVE ranges at 10000 —
+// the lib's from..to spans 10001 blocks, so every catch-up preload fails and
+// the indexer silently pins. CHECKPOINT_MAX_BLOCKS_PER_REQUEST=9999 fixes it.
+const fs2 = require('fs');
+const providerPath = require.resolve('@snapshot-labs/checkpoint/dist/src/providers/evm/provider.js');
+let prov = fs2.readFileSync(providerPath, 'utf8');
+const hardcoded = 'const MAX_BLOCKS_PER_REQUEST = 10000;';
+const dynamic = "const MAX_BLOCKS_PER_REQUEST = parseInt(process.env.CHECKPOINT_MAX_BLOCKS_PER_REQUEST || '10000', 10);";
+if (prov.includes(hardcoded)) {
+    fs2.writeFileSync(providerPath, prov.replace(hardcoded, dynamic));
+    console.log('patched provider MAX_BLOCKS_PER_REQUEST -> env-driven');
+} else if (prov.includes('CHECKPOINT_MAX_BLOCKS_PER_REQUEST')) {
+    console.log('provider MAX_BLOCKS_PER_REQUEST already patched');
+} else {
+    throw new Error('provider.js MAX_BLOCKS_PER_REQUEST pattern not found - lib version changed, update this patch');
+}
